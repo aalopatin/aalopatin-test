@@ -36,7 +36,7 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}          
-        run: mvn clean deploy -Psign-artifacts -DskipTests
+        run: mvn -B clean deploy -Psign-artifacts -DskipTests
 
       - name: Create Git tag for release
         if: github.ref == 'refs/heads/main'
