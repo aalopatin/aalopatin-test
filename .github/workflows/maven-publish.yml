@@ -1,0 +1,46 @@
+name: Deploy to Maven Central
+
+on:
+  push:
+    branches: 
+      - develop
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 1 - Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Step 2 - Set up Maven Central Repository
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          server-id: central
+          server-username: ${{ secrets.MAVEN_USERNAME }}
+          server-password: ${{ secrets.MAVEN_PASSWORD }}
+
+      - name: Step 3 - Extract version from pom.xml
+        id: get-version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
+          echo "Project version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Step 4 -Build and Deploy (snapshot or release)
+        run: mvn clean deploy -Psign-artifacts -DskipTests
+
+      - name: Create Git tag for release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+          echo "Creating Git tag v$VERSION"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git fetch --tags
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
